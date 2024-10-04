@@ -57,12 +57,16 @@ class AiohttpProvider(AbstractProvider):
             self._session = session_factory()
         return self._session
 
+    async def close(self) -> None:
+        """关闭内部连接"""
+        await self._session.close()
+
     async def __aenter__(self) -> Self:
         self._ensure_session()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
-        await self._session.close()
+        await self.close()
 
 
 class MojangProvider(AiohttpProvider):
@@ -197,14 +201,14 @@ if __name__ == "__main__":
         littleskin = AuthInjCompatibleProvider("https://littleskin.cn/api/yggdrasil")
         mojang = MojangProvider()
         async with littleskin as r:
-            print(await r.has_joined("Notch", "serverid"))
-            print(await r.query_by_name("Notch"))
+            print(await r.has_joined(GameName("Notch"), "serverid"))
+            print(await r.query_by_name(GameName("Notch")))
             print((await r.profile_public_key()).export_key().decode())
             print((await r.profile_public_keys())[0].export_key().decode())
 
         async with mojang as r:
-            print(await r.has_joined("Notch", "serverid"))
-            print(await r.query_by_name("Notch"))
+            print(await r.has_joined(GameName("Notch"), "serverid"))
+            print(await r.query_by_name(GameName("Notch")))
 
 
     asyncio.run(usage_example())
