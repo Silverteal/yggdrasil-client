@@ -13,23 +13,22 @@ from Crypto.PublicKey.RSA import RsaKey
 from adofai import GameName
 from adofai.models import FulfilledGameProfile, GameProfile, PartialGameProfile
 from aiohttp import ClientSession, DummyCookieJar
-
 from yggdrasil_client.exceptions import FailedStatusCode, NotSupported
 
 
 class AbstractProvider(ABC):
     """接口基类"""
 
-    async def hasJoined(self, username: GameName | str, serverId: str,
-                        ip: Optional[str] = None) -> FulfilledGameProfile | Literal[False]:
+    async def has_joined(self, username: GameName, serverId: str,
+                         ip: Optional[str] = None) -> FulfilledGameProfile | Literal[False]:
         """服务端验证客户端"""
         raise NotImplementedError
 
-    async def query_by_names(self, names: list[GameName | str]) -> list[PartialGameProfile]:
+    async def query_by_names(self, names: list[GameName]) -> list[PartialGameProfile]:
         """通过多个玩家名查询玩家档案"""
         raise NotImplementedError
 
-    async def query_by_name(self, name: GameName | str) -> PartialGameProfile | None:
+    async def query_by_name(self, name: GameName) -> PartialGameProfile | None:
         """通过单个玩家名查询玩家档案"""
         raise NotImplementedError
 
@@ -43,8 +42,6 @@ class AbstractProvider(ABC):
 
 
 class AiohttpProvider(AbstractProvider):
-    """Authlib-injector 兼容的第三方 Yggdrasil 服务器"""
-
     @abstractmethod
     def __init__(self, *, session_factory: Optional[Callable[[str], ClientSession]] = None):
         self._session_factory = session_factory
@@ -73,8 +70,8 @@ class MojangProvider(AiohttpProvider):
         self._session: ClientSession
 
     @override
-    async def hasJoined(self, username: GameName | str, serverId: str,
-                        ip: Optional[str] = None) -> FulfilledGameProfile | Literal[False]:
+    async def has_joined(self, username: GameName, serverId: str,
+                         ip: Optional[str] = None) -> FulfilledGameProfile | Literal[False]:
         full_url = "https://sessionserver.mojang.com/session/minecraft/hasJoined"
         params = {
             "username": username,
@@ -92,7 +89,7 @@ class MojangProvider(AiohttpProvider):
             raise FailedStatusCode(resp.status)
 
     @override
-    async def query_by_names(self, names: list[GameName | str]) -> list[PartialGameProfile]:
+    async def query_by_names(self, names: list[GameName]) -> list[PartialGameProfile]:
         full_url = "https://api.minecraftservices.com/minecraft/profile/lookup/bulk/byname"
         async with self._ensure_session().post(full_url, json=names) as resp:
             if resp.status == 200:
@@ -101,7 +98,7 @@ class MojangProvider(AiohttpProvider):
             raise FailedStatusCode(resp.status)
 
     @override
-    async def query_by_name(self, name: GameName | str) -> PartialGameProfile | None:
+    async def query_by_name(self, name: GameName) -> PartialGameProfile | None:
         full_url = f"https://api.mojang.com/users/profiles/minecraft/{name}"
         async with self._ensure_session().get(full_url) as resp:
             if resp.status == 200:
@@ -126,7 +123,6 @@ class MojangProvider(AiohttpProvider):
 
 
 class AuthInjCompatibleProvider(AiohttpProvider):
-
     def __init__(self, url: str, *, try_ali: bool = False,
                  session_factory: Optional[Callable[[str], ClientSession]] = None):
         # TODO：ALI
@@ -135,8 +131,8 @@ class AuthInjCompatibleProvider(AiohttpProvider):
         self._session: ClientSession
 
     @override
-    async def hasJoined(self, username: GameName | str, serverId: str,
-                        ip: Optional[str] = None) -> FulfilledGameProfile | Literal[False]:
+    async def has_joined(self, username: GameName, serverId: str,
+                         ip: Optional[str] = None) -> FulfilledGameProfile | Literal[False]:
         full_url = f"{self._prefix}/sessionserver/session/minecraft/hasJoined"
         params = {
             "username": username,
@@ -154,7 +150,7 @@ class AuthInjCompatibleProvider(AiohttpProvider):
             raise FailedStatusCode(resp.status)
 
     @override
-    async def query_by_names(self, names: list[GameName | str]) -> list[PartialGameProfile]:
+    async def query_by_names(self, names: list[GameName]) -> list[PartialGameProfile]:
         full_url = f"{self._prefix}/api/profiles/minecraft"
         async with self._ensure_session().post(full_url, json=names) as resp:
             if resp.status == 200:
@@ -163,7 +159,7 @@ class AuthInjCompatibleProvider(AiohttpProvider):
             raise FailedStatusCode(resp.status)
 
     @override
-    async def query_by_name(self, name: GameName | str) -> PartialGameProfile | None:
+    async def query_by_name(self, name: GameName) -> PartialGameProfile | None:
         result = await self.query_by_names([name])
         return result[0] if result else None
 
@@ -200,13 +196,13 @@ if __name__ == "__main__":
         littleskin = AuthInjCompatibleProvider("https://littleskin.cn/api/yggdrasil")
         mojang = MojangProvider()
         async with littleskin as r:
-            print(await r.hasJoined("11", "22"))
+            print(await r.has_joined("Notch", "serverid"))
             print(await r.query_by_name("Notch"))
             print((await r.profile_public_key()).export_key().decode())
             print((await r.profile_public_keys())[0].export_key().decode())
 
         async with mojang as r:
-            print(await r.hasJoined("11", "22"))
+            print(await r.has_joined("Notch", "serverid"))
             print(await r.query_by_name("Notch"))
 
 

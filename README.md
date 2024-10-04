@@ -6,6 +6,12 @@ Yggdrasil 是 Minecraft 中身份验证服务的实现名称。
 
 ## 快速开始
 
+### 安装
+```shell
+pip install yggdrasil-client
+```
+
+### 示例
 ```python
 import asyncio
 from yggdrasil_client import AuthInjCompatibleProvider, MojangProvider
@@ -15,20 +21,20 @@ async def usage_example():
     littleskin = AuthInjCompatibleProvider("https://littleskin.cn/api/yggdrasil")
     mojang = MojangProvider()
     async with littleskin as r:
-        print(await r.hasJoined("Notch", "serverid"))
+        print(await r.has_joined("Notch", "serverid"))
         print(await r.query_by_name("Notch"))
         print((await r.profile_public_key()).export_key().decode())
         print((await r.profile_public_keys())[0].export_key().decode())
 
     async with mojang as r:
-        print(await r.hasJoined("Notch", "serverid"))
+        print(await r.has_joined("Notch", "serverid"))
         print(await r.query_by_name("Notch"))
 
     asyncio.run(usage_example())
 
 ```
 
-没有文档，但是做完的那部分代码很简单。
+文档还没有写，但是做完的那部分代码很简单。
 
 ## 另请参阅
 
