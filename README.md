@@ -31,6 +31,8 @@ async def usage_example():
         print(await r.has_joined(GameName("Notch"), "serverid"))
         print(await r.query_by_name(GameName("Notch")))
 
+
+if __name__ == "__main__":
     asyncio.run(usage_example())
 
 ```
