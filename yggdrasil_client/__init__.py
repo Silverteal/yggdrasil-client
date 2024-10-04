@@ -1,6 +1,6 @@
 # coding=utf-8
 """Yggdrasil 客户端"""
-__all__ = ["MojangProvider", "AuthInjCompatibleProvider"]
+__all__ = ["AbstractProvider", "MojangProvider", "AuthInjCompatibleProvider"]
 
 import warnings
 from abc import ABC, abstractmethod
@@ -13,6 +13,7 @@ from Crypto.PublicKey.RSA import RsaKey
 from adofai import GameName
 from adofai.models import FulfilledGameProfile, GameProfile, PartialGameProfile
 from aiohttp import ClientSession, DummyCookieJar
+
 from yggdrasil_client.exceptions import FailedStatusCode, NotSupported
 
 

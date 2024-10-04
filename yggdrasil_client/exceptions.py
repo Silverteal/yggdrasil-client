@@ -1,4 +1,7 @@
 # coding=utf-8
+"""定义异常"""
+__all__ = ["YggdrasilClientException", "ProviderException", "FailedStatusCode", "NotSupported"]
+
 from typing import Optional
 
 
