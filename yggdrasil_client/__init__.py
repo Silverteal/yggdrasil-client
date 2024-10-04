@@ -10,8 +10,9 @@ from typing import Any, Literal, Optional, Self, override
 
 from Crypto.PublicKey import RSA
 from Crypto.PublicKey.RSA import RsaKey
-from adofai import GameName
+from adofai import GameId, GameName, SerializedProfile
 from adofai.models import FulfilledGameProfile, GameProfile, PartialGameProfile
+from adofai.utils.uuid import uuid_to_str
 from aiohttp import ClientSession, DummyCookieJar
 
 from yggdrasil_client.exceptions import FailedStatusCode, NotSupported
@@ -23,6 +24,15 @@ class AbstractProvider(ABC):
     async def has_joined(self, username: GameName, serverId: str,
                          ip: Optional[str] = None) -> FulfilledGameProfile | Literal[False]:
         """服务端验证客户端"""
+        raise NotImplementedError
+
+    async def query_by_uuid(self, uuid: GameId) -> FulfilledGameProfile | None:  # 参数名勿改
+        """通过单个玩家 UUID 查询完整玩家档案"""
+        content = await self.query_by_uuid_raw(uuid)
+        return content and FulfilledGameProfile(GameProfile.deserialize(content))
+
+    async def query_by_uuid_raw(self, uuid: GameId) -> SerializedProfile | None:
+        """通过单个玩家 UUID 查询完整玩家档案，为保留签名，不作反序列化处理"""
         raise NotImplementedError
 
     async def query_by_names(self, names: list[GameName]) -> list[PartialGameProfile]:
@@ -94,6 +104,16 @@ class MojangProvider(AiohttpProvider):
             raise FailedStatusCode(resp.status)
 
     @override
+    async def query_by_uuid_raw(self, uuid: GameId) -> SerializedProfile | None:
+        full_url = f"https://sessionserver.mojang.com/session/minecraft/profile/{uuid_to_str(uuid)}?unsigned=false"
+        async with self._ensure_session().get(full_url) as resp:
+            if resp.status == 200:
+                return await resp.json()
+            elif resp.status in (204, 404):
+                return None
+            raise FailedStatusCode(resp.status)
+
+    @override
     async def query_by_names(self, names: list[GameName]) -> list[PartialGameProfile]:
         full_url = "https://api.minecraftservices.com/minecraft/profile/lookup/bulk/byname"
         async with self._ensure_session().post(full_url, json=names) as resp:
@@ -109,7 +129,7 @@ class MojangProvider(AiohttpProvider):
             if resp.status == 200:
                 content = await resp.json()
                 return PartialGameProfile(GameProfile.deserialize(content))
-            elif resp.status in (204, 404):
+            elif resp.status == 204:
                 return None
             raise FailedStatusCode(resp.status)
 
@@ -154,6 +174,15 @@ class AuthInjCompatibleProvider(AiohttpProvider):
                     return False
             raise FailedStatusCode(resp.status)
 
+    async def query_by_uuid_raw(self, uuid: GameId) -> SerializedProfile | None:
+        full_url = f"{self._prefix}/sessionserver/session/minecraft/profile/{uuid_to_str(uuid)}?unsigned=false"
+        async with self._ensure_session().get(full_url) as resp:
+            if resp.status == 200:
+                return await resp.json()
+            elif resp.status == 204:
+                return None
+        raise FailedStatusCode(resp.status)
+
     @override
     async def query_by_names(self, names: list[GameName]) -> list[PartialGameProfile]:
         full_url = f"{self._prefix}/api/profiles/minecraft"
@@ -195,6 +224,7 @@ class AuthInjCompatibleProvider(AiohttpProvider):
 
 if __name__ == "__main__":
     import asyncio
+    from uuid import UUID
 
 
     async def usage_example():
@@ -202,13 +232,16 @@ if __name__ == "__main__":
         mojang = MojangProvider()
         async with littleskin as r:
             print(await r.has_joined(GameName("Notch"), "serverid"))
-            print(await r.query_by_name(GameName("Notch")))
+            print(await r.query_by_name(GameName("NoTcH")))
             print((await r.profile_public_key()).export_key().decode())
             print((await r.profile_public_keys())[0].export_key().decode())
 
         async with mojang as r:
             print(await r.has_joined(GameName("Notch"), "serverid"))
             print(await r.query_by_name(GameName("Notch")))
+
+            print(await r.query_by_uuid(GameId(UUID("069a79f444e94726a5befca90e38aaf5"))))
+            print(await r.query_by_uuid_raw(GameId(UUID("069a79f444e94726a5befca90e38aaf5"))))
 
 
     asyncio.run(usage_example())

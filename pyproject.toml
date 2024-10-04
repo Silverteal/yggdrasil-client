@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "yggdrasil-client"
-version = "0.1.0-dev5"
-description = "(Unfinished) Minecraft Yggdrasil protocol compatible client based on ADOFAI. Supports mojang backend."
+version = "0.1.0-dev6"
+description = "Minecraft Yggdrasil protocol compatible client based on ADOFAI. Supports mojang backend."
 license = "MIT"
 authors = ["Silverteal <67404722+Silverteal@users.noreply.github.com>"]
 readme = "README.md"

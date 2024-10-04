@@ -1,20 +1,26 @@
 # Yggdrasil Client based on ADOFAI
 
-基于 [ADOFAI](https://github.com/silverteal/adofai) 和 aiohttp 的 (未完成的) Minecraft Yggdrasil 协议兼容客户端，支持 Mojang 后端。
+基于 [ADOFAI](https://github.com/silverteal/adofai) 和 aiohttp 的 Minecraft Yggdrasil 协议兼容客户端，支持
+Mojang 后端。
+
+目前已经实现了 Authlib-Injector Yggdrasil 协议中所有公共（无需认证） API 的包装
 
 Yggdrasil 是 Minecraft 中身份验证服务的实现名称。
 
 ## 快速开始
 
 ### 安装
+
 ```shell
 pip install yggdrasil-client
 ```
 
 ### 示例
+
 ```python
 import asyncio
-from adofai import GameName
+from uuid import UUID
+from adofai import GameName, GameId
 from yggdrasil_client import AuthInjCompatibleProvider, MojangProvider
 
 
@@ -23,21 +29,22 @@ async def usage_example():
     mojang = MojangProvider()
     async with littleskin as r:
         print(await r.has_joined(GameName("Notch"), "serverid"))
-        print(await r.query_by_name(GameName("Notch")))
-        print((await r.profile_public_key()).export_key().decode())
-        print((await r.profile_public_keys())[0].export_key().decode())
+    print(await r.query_by_name(GameName("NoTcH")))
+    print((await r.profile_public_key()).export_key().decode())
+    print((await r.profile_public_keys())[0].export_key().decode())
 
     async with mojang as r:
         print(await r.has_joined(GameName("Notch"), "serverid"))
         print(await r.query_by_name(GameName("Notch")))
+
+        print(await r.query_by_uuid(GameId(UUID("069a79f444e94726a5befca90e38aaf5"))))
+        print(await r.query_by_uuid_raw(GameId(UUID("069a79f444e94726a5befca90e38aaf5"))))
 
 
 if __name__ == "__main__":
     asyncio.run(usage_example())
 
 ```
-
-文档还没有写，但是做完的那部分代码很简单。
 
 ## 另请参阅
 
