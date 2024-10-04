@@ -129,7 +129,7 @@ class MojangProvider(AiohttpProvider):
             if resp.status == 200:
                 content = await resp.json()
                 return PartialGameProfile(GameProfile.deserialize(content))
-            elif resp.status == (204, 404):
+            elif resp.status in (204, 404):
                 return None
             raise FailedStatusCode(resp.status)
 
