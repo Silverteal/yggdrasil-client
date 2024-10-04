@@ -109,7 +109,7 @@ class MojangProvider(AiohttpProvider):
         async with self._ensure_session().get(full_url) as resp:
             if resp.status == 200:
                 return await resp.json()
-            elif resp.status in (204, 404):
+            elif resp.status == 204:
                 return None
             raise FailedStatusCode(resp.status)
 
@@ -129,7 +129,7 @@ class MojangProvider(AiohttpProvider):
             if resp.status == 200:
                 content = await resp.json()
                 return PartialGameProfile(GameProfile.deserialize(content))
-            elif resp.status == 204:
+            elif resp.status == (204, 404):
                 return None
             raise FailedStatusCode(resp.status)
 
