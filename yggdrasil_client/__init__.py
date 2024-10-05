@@ -24,6 +24,12 @@ class AbstractProvider(ABC):
     async def has_joined(self, username: GameName, serverId: str,
                          ip: Optional[str] = None) -> FulfilledGameProfile | Literal[False]:
         """服务端验证客户端"""
+        content = await self.has_joined_raw(username=username, serverId=serverId, ip=ip)
+        return content and FulfilledGameProfile(GameProfile.deserialize(content))
+
+    async def has_joined_raw(self, username: GameName, serverId: str,
+                             ip: Optional[str] = None) -> SerializedProfile | None:
+        """服务端验证客户端，为保留签名，不作反序列化处理"""
         raise NotImplementedError
 
     async def query_by_uuid(self, uuid: GameId) -> FulfilledGameProfile | None:  # 参数名勿改
@@ -80,13 +86,14 @@ class AiohttpProvider(AbstractProvider):
 
 
 class MojangProvider(AiohttpProvider):
+    @override
     def __init__(self, *, session_factory: Optional[Callable[[str], ClientSession]] = None):
         self._session_factory = session_factory
         self._session: ClientSession
 
     @override
-    async def has_joined(self, username: GameName, serverId: str,
-                         ip: Optional[str] = None) -> FulfilledGameProfile | Literal[False]:
+    async def has_joined_raw(self, username: GameName, serverId: str,
+                             ip: Optional[str] = None) -> SerializedProfile | None:
         full_url = "https://sessionserver.mojang.com/session/minecraft/hasJoined"
         params = {
             "username": username,
@@ -97,10 +104,9 @@ class MojangProvider(AiohttpProvider):
         async with self._ensure_session().get(full_url, params=params) as resp:
             if resp.ok:
                 if resp.status == 200:
-                    content = await resp.json()
-                    return FulfilledGameProfile(GameProfile.deserialize(content))
+                    return await resp.json()
                 else:
-                    return False
+                    return None
             raise FailedStatusCode(resp.status)
 
     @override
@@ -148,6 +154,7 @@ class MojangProvider(AiohttpProvider):
 
 
 class AuthInjCompatibleProvider(AiohttpProvider):
+    @override
     def __init__(self, url: str, *, try_ali: bool = False,
                  session_factory: Optional[Callable[[str], ClientSession]] = None):
         # TODO：ALI
@@ -156,8 +163,8 @@ class AuthInjCompatibleProvider(AiohttpProvider):
         self._session: ClientSession
 
     @override
-    async def has_joined(self, username: GameName, serverId: str,
-                         ip: Optional[str] = None) -> FulfilledGameProfile | Literal[False]:
+    async def has_joined_raw(self, username: GameName, serverId: str,
+                             ip: Optional[str] = None) -> FulfilledGameProfile | None:
         full_url = f"{self._prefix}/sessionserver/session/minecraft/hasJoined"
         params = {
             "username": username,
@@ -168,12 +175,12 @@ class AuthInjCompatibleProvider(AiohttpProvider):
         async with self._ensure_session().get(full_url, params=params) as resp:
             if resp.ok:
                 if resp.status == 200:
-                    content = await resp.json()
-                    return FulfilledGameProfile(GameProfile.deserialize(content))
+                    return await resp.json()
                 elif resp.status == 204:
-                    return False
+                    return None
             raise FailedStatusCode(resp.status)
 
+    @override
     async def query_by_uuid_raw(self, uuid: GameId) -> SerializedProfile | None:
         full_url = f"{self._prefix}/sessionserver/session/minecraft/profile/{uuid_to_str(uuid)}?unsigned=false"
         async with self._ensure_session().get(full_url) as resp:
