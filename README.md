@@ -29,9 +29,8 @@ async def usage_example():
     mojang = MojangProvider()
     async with littleskin as r:
         print(await r.has_joined(GameName("Notch"), "serverid"))
-    print(await r.query_by_name(GameName("NoTcH")))
-    print((await r.profile_public_key()).export_key().decode())
-    print((await r.profile_public_keys())[0].export_key().decode())
+        print(await r.query_by_name(GameName("NoTcH")))
+        print((await r.profile_public_key()).export_key().decode())
 
     async with mojang as r:
         print(await r.has_joined(GameName("Notch"), "serverid"))
@@ -39,7 +38,7 @@ async def usage_example():
 
         print(await r.query_by_uuid(GameId(UUID("069a79f444e94726a5befca90e38aaf5"))))
         print(await r.query_by_uuid_raw(GameId(UUID("069a79f444e94726a5befca90e38aaf5"))))
-
+        print((await r.profile_public_keys())[0].export_key().decode())
 
 if __name__ == "__main__":
     asyncio.run(usage_example())

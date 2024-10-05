@@ -145,7 +145,8 @@ class MojangProvider(AiohttpProvider):
         async with self._ensure_session().get(full_url) as resp:
             if resp.status == 200:
                 content = await resp.json()
-                return [RSA.import_key(i["publicKey"]) for i in content["profilePropertyKeys"]]
+                return [RSA.import_key(f"-----BEGIN PUBLIC KEY-----\n{i["publicKey"]}\n-----END PUBLIC KEY-----") for i in
+                        content["profilePropertyKeys"]]
         raise FailedStatusCode(resp.status)
 
     @override
@@ -241,7 +242,6 @@ if __name__ == "__main__":
             print(await r.has_joined(GameName("Notch"), "serverid"))
             print(await r.query_by_name(GameName("NoTcH")))
             print((await r.profile_public_key()).export_key().decode())
-            print((await r.profile_public_keys())[0].export_key().decode())
 
         async with mojang as r:
             print(await r.has_joined(GameName("Notch"), "serverid"))
@@ -249,6 +249,7 @@ if __name__ == "__main__":
 
             print(await r.query_by_uuid(GameId(UUID("069a79f444e94726a5befca90e38aaf5"))))
             print(await r.query_by_uuid_raw(GameId(UUID("069a79f444e94726a5befca90e38aaf5"))))
+            print((await r.profile_public_keys())[0].export_key().decode())
 
 
     asyncio.run(usage_example())
